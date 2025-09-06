@@ -14,7 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      portfolio_assets: {
+        Row: {
+          average_price: number
+          current_price: number
+          id: string
+          name: string | null
+          portfolio_id: string
+          quantity: number
+          symbol: string
+          total_invested: number
+          updated_at: string
+        }
+        Insert: {
+          average_price?: number
+          current_price?: number
+          id?: string
+          name?: string | null
+          portfolio_id: string
+          quantity?: number
+          symbol: string
+          total_invested?: number
+          updated_at?: string
+        }
+        Update: {
+          average_price?: number
+          current_price?: number
+          id?: string
+          name?: string | null
+          portfolio_id?: string
+          quantity?: number
+          symbol?: string
+          total_invested?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          base_balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          fee: number
+          id: string
+          name: string | null
+          portfolio_id: string
+          price: number
+          quantity: number
+          symbol: string
+          total: number
+          type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Insert: {
+          created_at?: string
+          fee?: number
+          id?: string
+          name?: string | null
+          portfolio_id: string
+          price: number
+          quantity: number
+          symbol: string
+          total: number
+          type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Update: {
+          created_at?: string
+          fee?: number
+          id?: string
+          name?: string | null
+          portfolio_id?: string
+          price?: number
+          quantity?: number
+          symbol?: string
+          total?: number
+          type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +163,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      transaction_type: "buy" | "sell"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +290,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      transaction_type: ["buy", "sell"],
+    },
   },
 } as const
