@@ -1,12 +1,15 @@
-import { TrendingUp, Settings } from 'lucide-react';
+import { TrendingUp, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { User } from '@supabase/supabase-js';
 
 interface HeaderProps {
   lastUpdated: Date | null;
-  onSettingsClick: () => void;
+  user: User | null;
 }
 
-export const Header = ({ lastUpdated, onSettingsClick }: HeaderProps) => {
+export const Header = ({ lastUpdated, user }: HeaderProps) => {
+  const { signOut } = useAuth();
   const formatLastUpdated = (date: Date | null) => {
     if (!date) return '';
     return date.toLocaleTimeString('pt-BR', { 
@@ -31,14 +34,22 @@ export const Header = ({ lastUpdated, onSettingsClick }: HeaderProps) => {
             </div>
           )}
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onSettingsClick}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          {user && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {user.email}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="text-muted-foreground hover:text-foreground"
+                title="Sair"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </header>

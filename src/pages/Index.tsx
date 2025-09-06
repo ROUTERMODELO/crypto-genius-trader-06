@@ -1,24 +1,39 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
+import { usePortfolio } from '@/hooks/usePortfolio';
+import { useAuth } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Header } from '@/components/Header';
 import { CryptoCard } from '@/components/CryptoCard';
 import { Portfolio } from '@/components/Portfolio';
 import { ProfitLossAnalysis } from '@/components/ProfitLossAnalysis';
 import { TransactionHistory } from '@/components/TransactionHistory';
 import { SellModal } from '@/components/SellModal';
-import { CryptoData, PortfolioAsset, Transaction, PortfolioSummary } from '@/types/crypto';
-import { useToast } from '@/hooks/use-toast';
+import { CryptoData, PortfolioAsset, PortfolioSummary } from '@/types/crypto';
 
 const Index = () => {
-  const { cryptoData, loading, lastUpdated } = useCryptoData();
-  const { toast } = useToast();
-
-  // Portfolio state
-  const [balance, setBalance] = useState(100);
-  const [assets, setAssets] = useState<PortfolioAsset[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { cryptoData, loading: cryptoLoading, lastUpdated } = useCryptoData();
+  const { user } = useAuth();
+  const { 
+    balance, 
+    assets, 
+    transactions, 
+    loading: portfolioLoading, 
+    updateBalance, 
+    buyAsset, 
+    sellAsset, 
+    updateAssetPrices 
+  } = usePortfolio();
+  
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<PortfolioAsset | null>(null);
+
+  // Update asset prices when crypto data changes
+  useEffect(() => {
+    if (cryptoData.length > 0) {
+      updateAssetPrices(cryptoData);
+    }
+  }, [cryptoData, updateAssetPrices]);
 
   // Find best buy opportunity (highest drop in 24h)
   const bestBuyOpportunity = useMemo(() => {
@@ -74,82 +89,16 @@ const Index = () => {
     };
   }, [assets, balance, cryptoData]);
 
-  // Update asset prices when crypto data changes
-  useState(() => {
-    setAssets(prevAssets => 
-      prevAssets.map(asset => {
-        const cryptoInfo = cryptoData.find(c => c.symbol === asset.symbol);
-        return cryptoInfo ? { ...asset, currentPrice: cryptoInfo.current_price } : asset;
-      })
-    );
-  });
-
-  const handleBuy = (crypto: CryptoData) => {
+  const handleBuy = async (crypto: CryptoData) => {
     const buyAmount = 10; // Fixed $10 buy amount
-    const fee = buyAmount * 0.001; // 0.1% fee
-    const netAmount = buyAmount - fee;
+    const netAmount = buyAmount - (buyAmount * 0.001); // 0.1% fee
     
     if (balance < buyAmount) {
-      toast({
-        title: "Saldo insuficiente",
-        description: "Você não tem saldo suficiente para esta compra.",
-        variant: "destructive",
-      });
       return;
     }
 
     const quantity = netAmount / crypto.current_price;
-    
-    setBalance(prev => prev - buyAmount);
-    
-    setAssets(prev => {
-      const existingAsset = prev.find(asset => asset.symbol === crypto.symbol);
-      if (existingAsset) {
-        const newQuantity = existingAsset.quantity + quantity;
-        const newTotalInvested = existingAsset.totalInvested + buyAmount;
-        const newAveragePrice = newTotalInvested / newQuantity;
-        
-        return prev.map(asset => 
-          asset.symbol === crypto.symbol
-            ? { 
-                ...asset, 
-                quantity: newQuantity,
-                averagePrice: newAveragePrice,
-                totalInvested: newTotalInvested,
-                currentPrice: crypto.current_price
-              }
-            : asset
-        );
-      } else {
-        return [...prev, {
-          symbol: crypto.symbol,
-          name: crypto.name,
-          quantity,
-          averagePrice: crypto.current_price,
-          currentPrice: crypto.current_price,
-          totalInvested: buyAmount
-        }];
-      }
-    });
-
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      type: 'buy',
-      symbol: crypto.symbol,
-      name: crypto.name,
-      quantity,
-      price: crypto.current_price,
-      total: buyAmount,
-      fee,
-      timestamp: new Date()
-    };
-
-    setTransactions(prev => [transaction, ...prev]);
-
-    toast({
-      title: "Compra realizada!",
-      description: `Você comprou $${buyAmount} de ${crypto.symbol}`,
-    });
+    await buyAsset(crypto.symbol, crypto.name, quantity, crypto.current_price, buyAmount);
   };
 
   const handleSellAsset = (asset: PortfolioAsset) => {
@@ -157,114 +106,74 @@ const Index = () => {
     setSellModalOpen(true);
   };
 
-  const handleSellConfirm = (quantity: number) => {
+  const handleSellConfirm = async (quantity: number) => {
     if (!selectedAsset) return;
-
-    const grossValue = quantity * selectedAsset.currentPrice;
-    const fee = grossValue * 0.001; // 0.1% fee
-    const netValue = grossValue - fee;
-
-    setBalance(prev => prev + netValue);
-
-    setAssets(prev => {
-      const updatedAssets = prev.map(asset => {
-        if (asset.symbol === selectedAsset.symbol) {
-          const newQuantity = asset.quantity - quantity;
-          if (newQuantity <= 0) {
-            return null; // Will be filtered out
-          }
-          const soldPortion = quantity / asset.quantity;
-          const newTotalInvested = asset.totalInvested * (1 - soldPortion);
-          
-          return {
-            ...asset,
-            quantity: newQuantity,
-            totalInvested: newTotalInvested
-          };
-        }
-        return asset;
-      }).filter(Boolean) as PortfolioAsset[];
-      
-      return updatedAssets;
-    });
-
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      type: 'sell',
-      symbol: selectedAsset.symbol,
-      name: selectedAsset.name,
-      quantity,
-      price: selectedAsset.currentPrice,
-      total: grossValue,
-      fee,
-      timestamp: new Date()
-    };
-
-    setTransactions(prev => [transaction, ...prev]);
-
-    toast({
-      title: "Venda realizada!",
-      description: `Você vendeu ${quantity.toFixed(6)} ${selectedAsset.symbol} por $${netValue.toFixed(2)}`,
-    });
+    await sellAsset(selectedAsset.symbol, selectedAsset.name, quantity, selectedAsset.currentPrice);
+    setSellModalOpen(false);
+    setSelectedAsset(null);
   };
 
-  if (loading) {
+  if (cryptoLoading || portfolioLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando dados das criptomoedas...</p>
+          <p className="text-muted-foreground">
+            {cryptoLoading ? 'Carregando dados das criptomoedas...' : 'Carregando portfólio...'}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        lastUpdated={lastUpdated}
-        onSettingsClick={() => {}} // TODO: Implement settings modal
-      />
-      
-      <main className="container mx-auto px-4 py-6 space-y-8">
-        {/* Crypto Cards Grid */}
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Criptomoedas</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {cryptoData.map((crypto) => (
-              <CryptoCard
-                key={crypto.id}
-                crypto={crypto}
-                isBestBuy={crypto.id === bestBuyOpportunity?.id}
-                onBuy={handleBuy}
-              />
-            ))}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Header 
+          lastUpdated={lastUpdated}
+          user={user}
+        />
+        
+        <main className="container mx-auto px-4 py-6 space-y-8">
+          {/* Crypto Cards Grid */}
+          <section>
+            <h2 className="text-2xl font-bold mb-6">Criptomoedas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {cryptoData.map((crypto) => (
+                <CryptoCard
+                  key={crypto.id}
+                  crypto={crypto}
+                  isBestBuy={crypto.id === bestBuyOpportunity?.id}
+                  onBuy={handleBuy}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* Portfolio Analysis */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ProfitLossAnalysis summary={portfolioSummary} />
+            <Portfolio
+              balance={balance}
+              assets={assets}
+              bestSellAsset={bestSellOpportunity}
+              onBalanceUpdate={updateBalance}
+              onSellAsset={handleSellAsset}
+            />
           </div>
-        </section>
 
-        {/* Portfolio Analysis */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ProfitLossAnalysis summary={portfolioSummary} />
-          <Portfolio
-            balance={balance}
-            assets={assets}
-            bestSellAsset={bestSellOpportunity}
-            onBalanceUpdate={setBalance}
-            onSellAsset={handleSellAsset}
-          />
-        </div>
+          {/* Transaction History */}
+          <TransactionHistory transactions={transactions} />
+        </main>
 
-        {/* Transaction History */}
-        <TransactionHistory transactions={transactions} />
-      </main>
-
-      <SellModal
-        isOpen={sellModalOpen}
-        asset={selectedAsset}
-        onClose={() => setSellModalOpen(false)}
-        onConfirm={handleSellConfirm}
-      />
-    </div>
+        <SellModal
+          isOpen={sellModalOpen}
+          asset={selectedAsset}
+          onClose={() => setSellModalOpen(false)}
+          onConfirm={handleSellConfirm}
+        />
+      </div>
+    </ProtectedRoute>
   );
 };
 
