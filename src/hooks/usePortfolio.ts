@@ -109,12 +109,14 @@ export const usePortfolio = () => {
     if (error) throw error;
 
     const formattedAssets: PortfolioAsset[] = data.map(asset => ({
+      id: asset.id,
       symbol: asset.symbol,
       name: asset.name || '',
       quantity: Number(asset.quantity),
-      averagePrice: Number(asset.average_price),
+      purchasePrice: Number(asset.average_price),
       currentPrice: Number(asset.current_price),
-      totalInvested: Number(asset.total_invested)
+      totalInvested: Number(asset.total_invested),
+      purchaseDate: new Date(asset.updated_at)
     }));
 
     setAssets(formattedAssets);
@@ -190,51 +192,20 @@ export const usePortfolio = () => {
 
       if (transactionError) throw transactionError;
 
-      // Update or create asset
-      const { data: existingAsset, error: assetFetchError } = await supabase
+      // Create new asset (always create a new record for each purchase)
+      const { error: createError } = await supabase
         .from('portfolio_assets')
-        .select('*')
-        .eq('portfolio_id', portfolioId)
-        .eq('symbol', symbol)
-        .maybeSingle();
+        .insert([{
+          portfolio_id: portfolioId,
+          symbol,
+          name,
+          quantity,
+          average_price: price,
+          current_price: price,
+          total_invested: total
+        }]);
 
-      if (assetFetchError && assetFetchError.code !== 'PGRST116') {
-        throw assetFetchError;
-      }
-
-      if (existingAsset) {
-        // Update existing asset
-        const newQuantity = Number(existingAsset.quantity) + quantity;
-        const newTotalInvested = Number(existingAsset.total_invested) + total;
-        const newAveragePrice = newTotalInvested / newQuantity;
-
-        const { error: updateError } = await supabase
-          .from('portfolio_assets')
-          .update({
-            quantity: newQuantity,
-            average_price: newAveragePrice,
-            current_price: price,
-            total_invested: newTotalInvested
-          })
-          .eq('id', existingAsset.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new asset
-        const { error: createError } = await supabase
-          .from('portfolio_assets')
-          .insert([{
-            portfolio_id: portfolioId,
-            symbol,
-            name,
-            quantity,
-            average_price: price,
-            current_price: price,
-            total_invested: total
-          }]);
-
-        if (createError) throw createError;
-      }
+      if (createError) throw createError;
 
       // Update balance
       await updateBalance(balance - total);
@@ -345,13 +316,24 @@ export const usePortfolio = () => {
     }
   };
 
-  const updateAssetPrices = (cryptoData: any[]) => {
+  const updateAssetPrices = async (cryptoData: any[]) => {
+    if (!portfolioId) return;
+    
     setAssets(prevAssets => 
       prevAssets.map(asset => {
         const cryptoInfo = cryptoData.find(c => c.symbol === asset.symbol);
         return cryptoInfo ? { ...asset, currentPrice: cryptoInfo.current_price } : asset;
       })
     );
+
+    // Update current prices in database
+    for (const crypto of cryptoData) {
+      await supabase
+        .from('portfolio_assets')
+        .update({ current_price: crypto.current_price })
+        .eq('portfolio_id', portfolioId)
+        .eq('symbol', crypto.symbol);
+    }
   };
 
   return {

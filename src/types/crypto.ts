@@ -10,12 +10,14 @@ export interface CryptoData {
 }
 
 export interface PortfolioAsset {
+  id: string;
   symbol: string;
   name: string;
   quantity: number;
-  averagePrice: number;
+  purchasePrice: number;
   currentPrice: number;
   totalInvested: number;
+  purchaseDate: Date;
 }
 
 export interface Transaction {

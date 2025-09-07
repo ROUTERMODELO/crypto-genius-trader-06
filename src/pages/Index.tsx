@@ -43,24 +43,26 @@ const Index = () => {
     );
   }, [cryptoData]);
 
-  // Find best sell opportunity (highest gain in 24h among owned assets)
+  // Find best sell opportunity (highest profit percentage among owned assets)
   const bestSellOpportunity = useMemo(() => {
-    if (assets.length === 0 || cryptoData.length === 0) return null;
+    if (assets.length === 0) return null;
     
-    const ownedCryptos = assets.map(asset => {
-      const cryptoInfo = cryptoData.find(c => c.symbol === asset.symbol);
-      return {
-        ...asset,
-        change24h: cryptoInfo?.price_change_percentage_24h || 0
-      };
+    const profitableAssets = assets.filter(asset => {
+      const currentValue = asset.quantity * asset.currentPrice;
+      const pnl = currentValue - asset.totalInvested;
+      return pnl > 0;
     });
 
-    const bestPerformer = ownedCryptos.reduce((best, current) => 
-      current.change24h > best.change24h ? current : best
-    );
+    if (profitableAssets.length === 0) return null;
 
-    return bestPerformer.change24h > 0 ? bestPerformer.symbol : null;
-  }, [assets, cryptoData]);
+    const bestPerformer = profitableAssets.reduce((best, current) => {
+      const bestPnl = ((best.quantity * best.currentPrice) - best.totalInvested) / best.totalInvested;
+      const currentPnl = ((current.quantity * current.currentPrice) - current.totalInvested) / current.totalInvested;
+      return currentPnl > bestPnl ? current : best;
+    });
+
+    return bestPerformer.symbol;
+  }, [assets]);
 
   // Calculate portfolio summary
   const portfolioSummary = useMemo((): PortfolioSummary => {
@@ -70,14 +72,13 @@ const Index = () => {
     const totalPnL = currentValue - totalInvested;
     const totalPnLPercentage = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
 
-    // Calculate 24h change (simplified - would need historical data for accuracy)
+    // Calculate 24h change based on current prices vs purchase prices
     const change24h = assets.reduce((sum, asset) => {
-      const cryptoInfo = cryptoData.find(c => c.symbol === asset.symbol);
-      const change = cryptoInfo ? (asset.quantity * asset.currentPrice * cryptoInfo.price_change_percentage_24h) / 100 : 0;
-      return sum + change;
+      const pnl = (asset.quantity * asset.currentPrice) - asset.totalInvested;
+      return sum + pnl;
     }, 0);
     
-    const change24hPercentage = currentValue > 0 ? (change24h / currentValue) * 100 : 0;
+    const change24hPercentage = totalInvested > 0 ? (change24h / totalInvested) * 100 : 0;
 
     return {
       totalValue,
@@ -87,18 +88,17 @@ const Index = () => {
       change24h,
       change24hPercentage
     };
-  }, [assets, balance, cryptoData]);
+  }, [assets, balance]);
 
-  const handleBuy = async (crypto: CryptoData) => {
-    const buyAmount = 10; // Fixed $10 buy amount
-    const netAmount = buyAmount - (buyAmount * 0.001); // 0.1% fee
+  const handleBuy = async (crypto: CryptoData, amount: number) => {
+    const netAmount = amount - (amount * 0.001); // 0.1% fee
     
-    if (balance < buyAmount) {
+    if (balance < amount) {
       return;
     }
 
     const quantity = netAmount / crypto.current_price;
-    await buyAsset(crypto.symbol, crypto.name, quantity, crypto.current_price, buyAmount);
+    await buyAsset(crypto.symbol, crypto.name, quantity, crypto.current_price, amount);
   };
 
   const handleSellAsset = (asset: PortfolioAsset) => {
@@ -145,6 +145,7 @@ const Index = () => {
                   crypto={crypto}
                   isBestBuy={crypto.id === bestBuyOpportunity?.id}
                   onBuy={handleBuy}
+                  balance={balance}
                 />
               ))}
             </div>

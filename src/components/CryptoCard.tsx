@@ -1,17 +1,23 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { CryptoData } from '@/types/crypto';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 interface CryptoCardProps {
   crypto: CryptoData;
   isBestBuy?: boolean;
-  onBuy: (crypto: CryptoData) => void;
+  onBuy: (crypto: CryptoData, amount: number) => void;
+  balance: number;
 }
 
-export const CryptoCard = ({ crypto, isBestBuy, onBuy }: CryptoCardProps) => {
+export const CryptoCard = ({ crypto, isBestBuy, onBuy, balance }: CryptoCardProps) => {
+  const [buyAmount, setBuyAmount] = useState('10');
+  const [showBuyInput, setShowBuyInput] = useState(false);
   const isPositive = crypto.price_change_percentage_24h >= 0;
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -23,6 +29,19 @@ export const CryptoCard = ({ crypto, isBestBuy, onBuy }: CryptoCardProps) => {
 
   const formatPercentage = (percentage: number) => {
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  };
+
+  const handleBuyClick = () => {
+    if (showBuyInput) {
+      const amount = parseFloat(buyAmount);
+      if (amount > 0 && amount <= balance) {
+        onBuy(crypto, amount);
+        setShowBuyInput(false);
+        setBuyAmount('10');
+      }
+    } else {
+      setShowBuyInput(true);
+    }
   };
 
   return (
@@ -65,15 +84,36 @@ export const CryptoCard = ({ crypto, isBestBuy, onBuy }: CryptoCardProps) => {
           </div>
         </div>
 
-        {isBestBuy && (
+        <div className="mt-4 space-y-2">
+          {showBuyInput && (
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                value={buyAmount}
+                onChange={(e) => setBuyAmount(e.target.value)}
+                placeholder="Valor em USD"
+                className="text-sm"
+                min="1"
+                max={balance}
+              />
+            </div>
+          )}
           <Button 
-            onClick={() => onBuy(crypto)}
-            className="w-full mt-4 gradient-primary hover:opacity-90 transition-opacity"
+            onClick={handleBuyClick}
+            className={cn(
+              "w-full transition-all",
+              isBestBuy 
+                ? "gradient-primary hover:opacity-90" 
+                : "bg-primary hover:bg-primary/90"
+            )}
             size="sm"
+            disabled={showBuyInput && (parseFloat(buyAmount) <= 0 || parseFloat(buyAmount) > balance)}
           >
-            Comprar Agora
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            {showBuyInput ? 'Confirmar' : 'Comprar'}
+            {isBestBuy && !showBuyInput && ' Agora'}
           </Button>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

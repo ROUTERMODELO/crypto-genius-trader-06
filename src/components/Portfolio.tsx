@@ -127,15 +127,18 @@ export const Portfolio = ({
 
                 return (
                   <div
-                    key={asset.symbol}
+                    key={asset.id}
                     className={cn(
                       "flex items-center justify-between p-3 rounded-lg border transition-all",
-                      isBestSell && "success-glow border-success"
+                      isBestSell && "border-success bg-success/5"
                     )}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold">{asset.symbol}</h4>
+                        <span className="text-xs text-muted-foreground">
+                          {asset.purchaseDate.toLocaleDateString('pt-BR')}
+                        </span>
                         {isBestSell && (
                           <div className="bg-success text-success-foreground px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -145,6 +148,9 @@ export const Portfolio = ({
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {asset.quantity.toFixed(6)} × {formatCurrency(asset.currentPrice)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Compra: {formatCurrency(asset.purchasePrice)}
                       </p>
                     </div>
                     

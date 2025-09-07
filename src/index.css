@@ -80,12 +80,10 @@
 @layer components {
   .crypto-glow {
     box-shadow: var(--shadow-glow);
-    @apply animate-pulse;
   }
   
   .success-glow {
     box-shadow: var(--shadow-success-glow);
-    @apply animate-pulse;
   }
   
   .card-shadow {
