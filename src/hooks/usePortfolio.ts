@@ -195,7 +195,17 @@ export const usePortfolio = () => {
       if (transactionError) throw transactionError;
 
       // Create new asset (always create a new record for each purchase)
-      const { error: createError } = await supabase
+      console.log('Creating asset with data:', {
+        portfolio_id: portfolioId,
+        symbol,
+        name,
+        quantity,
+        average_price: price,
+        current_price: price,
+        total_invested: total
+      });
+
+      const { data: assetData, error: createError } = await supabase
         .from('portfolio_assets')
         .insert([{
           portfolio_id: portfolioId,
@@ -205,9 +215,15 @@ export const usePortfolio = () => {
           average_price: price,
           current_price: price,
           total_invested: total
-        }]);
+        }])
+        .select();
 
-      if (createError) throw createError;
+      console.log('Asset creation result:', { assetData, createError });
+
+      if (createError) {
+        console.error('Error creating asset:', createError);
+        throw createError;
+      }
 
       // Update balance
       await updateBalance(balance - total);
