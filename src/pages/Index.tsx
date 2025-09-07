@@ -91,11 +91,15 @@ const Index = () => {
   }, [assets, balance]);
 
   const handleBuy = async (crypto: CryptoData, amount: number) => {
+    console.log('handleBuy called with:', { crypto: crypto.symbol, amount });
+    
     if (balance < amount || amount <= 0) {
+      console.log('Buy cancelled: insufficient balance or invalid amount');
       return;
     }
 
     const quantity = amount / crypto.current_price;
+    console.log('Calculated quantity:', quantity);
     await buyAsset(crypto.symbol, crypto.name, quantity, crypto.current_price, amount);
   };
 

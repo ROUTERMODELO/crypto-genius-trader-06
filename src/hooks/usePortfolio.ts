@@ -170,6 +170,8 @@ export const usePortfolio = () => {
   const buyAsset = async (symbol: string, name: string, quantity: number, price: number, total: number) => {
     if (!portfolioId) return;
 
+    console.log('buyAsset called with:', { symbol, name, quantity, price, total });
+
     try {
       const fee = total * 0.001;
       const netAmount = total - fee;
