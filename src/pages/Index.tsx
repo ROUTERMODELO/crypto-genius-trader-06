@@ -91,13 +91,11 @@ const Index = () => {
   }, [assets, balance]);
 
   const handleBuy = async (crypto: CryptoData, amount: number) => {
-    const netAmount = amount - (amount * 0.001); // 0.1% fee
-    
-    if (balance < amount) {
+    if (balance < amount || amount <= 0) {
       return;
     }
 
-    const quantity = netAmount / crypto.current_price;
+    const quantity = amount / crypto.current_price;
     await buyAsset(crypto.symbol, crypto.name, quantity, crypto.current_price, amount);
   };
 
