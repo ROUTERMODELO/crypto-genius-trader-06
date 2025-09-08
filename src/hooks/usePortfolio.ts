@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -195,12 +195,17 @@ export const usePortfolio = () => {
       if (transactionError) throw transactionError;
 
       // Check if asset already exists for this portfolio
-      const { data: existingAsset } = await supabase
+      const { data: existingAsset, error: fetchError } = await supabase
         .from('portfolio_assets')
         .select('*')
         .eq('portfolio_id', portfolioId)
         .eq('symbol', symbol)
         .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching existing asset:', fetchError);
+        throw fetchError;
+      }
 
       if (existingAsset) {
         // Update existing asset
@@ -226,10 +231,10 @@ export const usePortfolio = () => {
         console.log('Asset updated successfully');
       } else {
         // Create new asset
-        console.log('Creating new asset for symbol:', symbol);
+        console.log('Creating new asset for symbol:', symbol, 'portfolio:', portfolioId);
         const { data: newAsset, error: createError } = await supabase
           .from('portfolio_assets')
-          .insert({
+          .insert([{
             portfolio_id: portfolioId,
             symbol,
             name,
@@ -237,7 +242,7 @@ export const usePortfolio = () => {
             average_price: price,
             current_price: price,
             total_invested: total
-          })
+          }])
           .select()
           .single();
 
@@ -382,7 +387,7 @@ export const usePortfolio = () => {
     }
   };
 
-  const updateAssetPrices = async (cryptoData: any[]) => {
+  const updateAssetPrices = useCallback(async (cryptoData: any[]) => {
     if (!portfolioId) return;
     
     setAssets(prevAssets => 
@@ -400,7 +405,7 @@ export const usePortfolio = () => {
         .eq('portfolio_id', portfolioId)
         .eq('symbol', crypto.symbol);
     }
-  };
+  }, [portfolioId]);
 
   return {
     balance,
