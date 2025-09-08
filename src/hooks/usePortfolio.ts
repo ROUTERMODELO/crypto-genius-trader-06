@@ -204,6 +204,7 @@ export const usePortfolio = () => {
 
       if (existingAsset) {
         // Update existing asset
+        console.log('Updating existing asset:', existingAsset.id);
         const newQuantity = Number(existingAsset.quantity) + quantity;
         const newTotalInvested = Number(existingAsset.total_invested) + total;
         const newAveragePrice = newTotalInvested / newQuantity;
@@ -218,10 +219,15 @@ export const usePortfolio = () => {
           })
           .eq('id', existingAsset.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating asset:', updateError);
+          throw updateError;
+        }
+        console.log('Asset updated successfully');
       } else {
         // Create new asset
-        const { error: createError } = await supabase
+        console.log('Creating new asset for symbol:', symbol);
+        const { data: newAsset, error: createError } = await supabase
           .from('portfolio_assets')
           .insert({
             portfolio_id: portfolioId,
@@ -231,12 +237,18 @@ export const usePortfolio = () => {
             average_price: price,
             current_price: price,
             total_invested: total
-          });
+          })
+          .select()
+          .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Error creating asset:', createError);
+          throw createError;
+        }
+        console.log('New asset created:', newAsset);
       }
 
-      console.log('Asset created successfully, updating balance...');
+      console.log('Asset operation completed successfully, updating balance...');
 
       // Update balance in database
       const { error: balanceError } = await supabase
@@ -252,15 +264,15 @@ export const usePortfolio = () => {
       // Update local balance
       setBalance(balance - total);
 
-      console.log('Balance updated, reloading data...');
+      console.log('Balance updated successfully, reloading portfolio data...');
 
-      // Reload data
+      // Reload data to reflect changes
       await Promise.all([
         loadAssets(portfolioId),
         loadTransactions(portfolioId)
       ]);
 
-      console.log('Data reloaded successfully');
+      console.log('Portfolio data reloaded successfully');
 
       toast({
         title: "Compra realizada!",

@@ -12,7 +12,7 @@ const DEFAULT_CRYPTOS = [
   'ripple',
   'cardano',
   'dogecoin',
-  'polygon',
+  'matic-network', // Changed from 'polygon' to correct CoinGecko ID
   'chainlink',
   'litecoin'
 ];
@@ -50,7 +50,7 @@ export const useCryptoData = (cryptoIds: string[] = DEFAULT_CRYPTOS) => {
                  id === 'ripple' ? 'XRP' :
                  id === 'cardano' ? 'ADA' :
                  id === 'dogecoin' ? 'DOGE' :
-                 id === 'polygon' ? 'MATIC' :
+                 id === 'matic-network' ? 'MATIC' :
                  id === 'chainlink' ? 'LINK' :
                  id === 'litecoin' ? 'LTC' :
                  id.toUpperCase(),
@@ -61,7 +61,7 @@ export const useCryptoData = (cryptoIds: string[] = DEFAULT_CRYPTOS) => {
                 id === 'ripple' ? 'XRP' :
                 id === 'cardano' ? 'Cardano' :
                 id === 'dogecoin' ? 'Dogecoin' :
-                id === 'polygon' ? 'Polygon' :
+                id === 'matic-network' ? 'Polygon' :
                 id === 'chainlink' ? 'Chainlink' :
                 id === 'litecoin' ? 'Litecoin' :
                 id.charAt(0).toUpperCase() + id.slice(1),
