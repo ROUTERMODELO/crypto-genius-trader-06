@@ -194,35 +194,46 @@ export const usePortfolio = () => {
 
       if (transactionError) throw transactionError;
 
-      // Create new asset (always create a new record for each purchase)
-      console.log('Creating asset with data:', {
-        portfolio_id: portfolioId,
-        symbol,
-        name,
-        quantity,
-        average_price: price,
-        current_price: price,
-        total_invested: total
-      });
-
-      const { data: assetData, error: createError } = await supabase
+      // Check if asset already exists for this portfolio
+      const { data: existingAsset } = await supabase
         .from('portfolio_assets')
-        .insert([{
-          portfolio_id: portfolioId,
-          symbol,
-          name,
-          quantity,
-          average_price: price,
-          current_price: price,
-          total_invested: total
-        }])
-        .select();
+        .select('*')
+        .eq('portfolio_id', portfolioId)
+        .eq('symbol', symbol)
+        .maybeSingle();
 
-      console.log('Asset creation result:', { assetData, createError });
+      if (existingAsset) {
+        // Update existing asset
+        const newQuantity = Number(existingAsset.quantity) + quantity;
+        const newTotalInvested = Number(existingAsset.total_invested) + total;
+        const newAveragePrice = newTotalInvested / newQuantity;
 
-      if (createError) {
-        console.error('Error creating asset:', createError);
-        throw createError;
+        const { error: updateError } = await supabase
+          .from('portfolio_assets')
+          .update({
+            quantity: newQuantity,
+            total_invested: newTotalInvested,
+            average_price: newAveragePrice,
+            current_price: price
+          })
+          .eq('id', existingAsset.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new asset
+        const { error: createError } = await supabase
+          .from('portfolio_assets')
+          .insert({
+            portfolio_id: portfolioId,
+            symbol,
+            name,
+            quantity,
+            average_price: price,
+            current_price: price,
+            total_invested: total
+          });
+
+        if (createError) throw createError;
       }
 
       console.log('Asset created successfully, updating balance...');
