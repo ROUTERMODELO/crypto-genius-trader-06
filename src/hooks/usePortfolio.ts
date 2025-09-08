@@ -225,14 +225,31 @@ export const usePortfolio = () => {
         throw createError;
       }
 
-      // Update balance
-      await updateBalance(balance - total);
+      console.log('Asset created successfully, updating balance...');
+
+      // Update balance in database
+      const { error: balanceError } = await supabase
+        .from('portfolios')
+        .update({ base_balance: balance - total })
+        .eq('id', portfolioId);
+
+      if (balanceError) {
+        console.error('Error updating balance:', balanceError);
+        throw balanceError;
+      }
+
+      // Update local balance
+      setBalance(balance - total);
+
+      console.log('Balance updated, reloading data...');
 
       // Reload data
       await Promise.all([
         loadAssets(portfolioId),
         loadTransactions(portfolioId)
       ]);
+
+      console.log('Data reloaded successfully');
 
       toast({
         title: "Compra realizada!",
@@ -310,8 +327,16 @@ export const usePortfolio = () => {
         if (updateError) throw updateError;
       }
 
-      // Update balance
-      await updateBalance(balance + netAmount);
+      // Update balance in database
+      const { error: balanceError } = await supabase
+        .from('portfolios')
+        .update({ base_balance: balance + netAmount })
+        .eq('id', portfolioId);
+
+      if (balanceError) throw balanceError;
+      
+      // Update local balance
+      setBalance(balance + netAmount);
 
       // Reload data
       await Promise.all([

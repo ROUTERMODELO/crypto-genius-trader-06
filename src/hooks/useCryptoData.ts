@@ -26,15 +26,17 @@ export const useCryptoData = (cryptoIds: string[] = DEFAULT_CRYPTOS) => {
   const fetchCryptoData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${COINGECKO_API}/simple/price?ids=${cryptoIds.join(',')}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true&include_last_updated_at=true`
-      );
+      console.log('Fetching crypto data for:', cryptoIds);
+      const url = `${COINGECKO_API}/simple/price?ids=${cryptoIds.join(',')}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true&include_last_updated_at=true`;
+      console.log('API URL:', url);
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch crypto data');
       }
       
       const data = await response.json();
+      console.log('CoinGecko API response:', data);
       
       // Transform the data to match our interface
       const transformedData: CryptoData[] = cryptoIds.map(id => {
