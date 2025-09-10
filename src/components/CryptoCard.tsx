@@ -9,11 +9,12 @@ import { useState } from 'react';
 interface CryptoCardProps {
   crypto: CryptoData;
   isBestBuy?: boolean;
+  isBestSell?: boolean;
   onBuy: (crypto: CryptoData, amount: number) => void;
   balance: number;
 }
 
-export const CryptoCard = ({ crypto, isBestBuy, onBuy, balance }: CryptoCardProps) => {
+export const CryptoCard = ({ crypto, isBestBuy, isBestSell, onBuy, balance }: CryptoCardProps) => {
   const [buyAmount, setBuyAmount] = useState('10');
   const [showBuyInput, setShowBuyInput] = useState(false);
   const isPositive = crypto.price_change_percentage_24h >= 0;
@@ -48,7 +49,8 @@ export const CryptoCard = ({ crypto, isBestBuy, onBuy, balance }: CryptoCardProp
     <Card 
       className={cn(
         "card-shadow transition-all duration-300 hover:scale-105",
-        isBestBuy && "crypto-glow border-primary"
+        isBestBuy && "crypto-glow border-primary",
+        isBestSell && "crypto-glow border-success"
       )}
     >
       <CardContent className="p-4">
@@ -62,6 +64,11 @@ export const CryptoCard = ({ crypto, isBestBuy, onBuy, balance }: CryptoCardProp
           {isBestBuy && (
             <div className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
               MELHOR COMPRA
+            </div>
+          )}
+          {isBestSell && (
+            <div className="bg-success text-success-foreground px-2 py-1 rounded-full text-xs font-medium">
+              MELHOR VENDA
             </div>
           )}
         </div>

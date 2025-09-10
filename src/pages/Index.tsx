@@ -64,6 +64,23 @@ const Index = () => {
     return bestPerformer.symbol;
   }, [assets]);
 
+  // Sort crypto data to prioritize best sell opportunities at the top
+  const sortedCryptoData = useMemo(() => {
+    if (!cryptoData.length) return [];
+    
+    return [...cryptoData].sort((a, b) => {
+      // Check if user owns these assets
+      const aOwned = assets.some(asset => asset.symbol === a.symbol);
+      const bOwned = assets.some(asset => asset.symbol === b.symbol);
+      
+      // If both are owned or both not owned, maintain original order
+      if (aOwned === bOwned) return 0;
+      
+      // Prioritize owned assets (potential sell opportunities) at the top
+      return aOwned ? -1 : 1;
+    });
+  }, [cryptoData, assets]);
+
   // Calculate portfolio summary
   const portfolioSummary = useMemo((): PortfolioSummary => {
     const totalInvested = assets.reduce((sum, asset) => sum + asset.totalInvested, 0);
@@ -141,15 +158,19 @@ const Index = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6">Criptomoedas</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {cryptoData.map((crypto) => (
-                <CryptoCard
-                  key={crypto.id}
-                  crypto={crypto}
-                  isBestBuy={crypto.id === bestBuyOpportunity?.id}
-                  onBuy={handleBuy}
-                  balance={balance}
-                />
-              ))}
+              {sortedCryptoData.map((crypto) => {
+                const isOwned = assets.some(asset => asset.symbol === crypto.symbol);
+                return (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    isBestBuy={crypto.id === bestBuyOpportunity?.id}
+                    isBestSell={isOwned && crypto.symbol === bestSellOpportunity}
+                    onBuy={handleBuy}
+                    balance={balance}
+                  />
+                );
+              })}
             </div>
           </section>
 

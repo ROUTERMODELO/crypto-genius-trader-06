@@ -207,51 +207,30 @@ export const usePortfolio = () => {
         throw fetchError;
       }
 
-      if (existingAsset) {
-        // Update existing asset
-        console.log('Updating existing asset:', existingAsset.id);
-        const newQuantity = Number(existingAsset.quantity) + quantity;
-        const newTotalInvested = Number(existingAsset.total_invested) + total;
-        const newAveragePrice = newTotalInvested / newQuantity;
+      // Always create new asset record instead of updating existing ones
+      // This allows users to sell individual purchases separately
+      console.log('Creating new asset for individual purchase tracking');
+      // Create new asset for each purchase
+      console.log('Creating new asset for symbol:', symbol, 'portfolio:', portfolioId);
+      const { data: newAsset, error: createError } = await supabase
+        .from('portfolio_assets')
+        .insert([{
+          portfolio_id: portfolioId,
+          symbol,
+          name,
+          quantity,
+          average_price: price,
+          current_price: price,
+          total_invested: total
+        }])
+        .select()
+        .single();
 
-        const { error: updateError } = await supabase
-          .from('portfolio_assets')
-          .update({
-            quantity: newQuantity,
-            total_invested: newTotalInvested,
-            average_price: newAveragePrice,
-            current_price: price
-          })
-          .eq('id', existingAsset.id);
-
-        if (updateError) {
-          console.error('Error updating asset:', updateError);
-          throw updateError;
-        }
-        console.log('Asset updated successfully');
-      } else {
-        // Create new asset
-        console.log('Creating new asset for symbol:', symbol, 'portfolio:', portfolioId);
-        const { data: newAsset, error: createError } = await supabase
-          .from('portfolio_assets')
-          .insert([{
-            portfolio_id: portfolioId,
-            symbol,
-            name,
-            quantity,
-            average_price: price,
-            current_price: price,
-            total_invested: total
-          }])
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating asset:', createError);
-          throw createError;
-        }
-        console.log('New asset created:', newAsset);
+      if (createError) {
+        console.error('Error creating asset:', createError);
+        throw createError;
       }
+      console.log('New asset created:', newAsset);
 
       console.log('Asset operation completed successfully, updating balance...');
 
