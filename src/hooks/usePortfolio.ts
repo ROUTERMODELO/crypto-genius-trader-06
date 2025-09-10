@@ -273,7 +273,7 @@ export const usePortfolio = () => {
     }
   };
 
-  const sellAsset = async (symbol: string, name: string, quantity: number, price: number) => {
+  const sellAsset = async (assetId: string, symbol: string, name: string, quantity: number, price: number) => {
     if (!portfolioId) return;
 
     try {
@@ -281,7 +281,7 @@ export const usePortfolio = () => {
       const fee = total * 0.001;
       const netAmount = total - fee;
 
-      // Create transaction
+      // Create transaction (record the sale)
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert([{
@@ -297,20 +297,26 @@ export const usePortfolio = () => {
 
       if (transactionError) throw transactionError;
 
-      // Update asset
+      // Fetch the specific asset by ID to sell from this purchase lot
       const { data: existingAsset, error: assetFetchError } = await supabase
         .from('portfolio_assets')
         .select('*')
         .eq('portfolio_id', portfolioId)
-        .eq('symbol', symbol)
+        .eq('id', assetId)
         .single();
 
       if (assetFetchError) throw assetFetchError;
 
-      const newQuantity = Number(existingAsset.quantity) - quantity;
+      const currentQty = Number(existingAsset.quantity);
+      const sellQty = Number(quantity);
+      const newQuantity = currentQty - sellQty;
+
+      if (newQuantity < 0) {
+        throw new Error('Quantidade de venda maior que a disponível.');
+      }
       
-      if (newQuantity <= 0) {
-        // Remove asset completely
+      if (newQuantity === 0) {
+        // Remove this purchase lot completely
         const { error: deleteError } = await supabase
           .from('portfolio_assets')
           .delete()
@@ -318,8 +324,8 @@ export const usePortfolio = () => {
 
         if (deleteError) throw deleteError;
       } else {
-        // Update asset quantity and total invested
-        const soldPortion = quantity / Number(existingAsset.quantity);
+        // Proporcionalmente reduzir o total investido deste lote
+        const soldPortion = sellQty / currentQty;
         const newTotalInvested = Number(existingAsset.total_invested) * (1 - soldPortion);
 
         const { error: updateError } = await supabase
@@ -352,16 +358,16 @@ export const usePortfolio = () => {
       ]);
 
       toast({
-        title: "Venda realizada!",
+        title: 'Venda realizada!',
         description: `Você vendeu ${quantity.toFixed(6)} ${symbol} por $${netAmount.toFixed(2)}`,
       });
 
     } catch (error) {
       console.error('Error selling asset:', error);
       toast({
-        title: "Erro na venda",
-        description: "Não foi possível realizar a venda.",
-        variant: "destructive",
+        title: 'Erro na venda',
+        description: 'Não foi possível realizar a venda.',
+        variant: 'destructive',
       });
     }
   };

@@ -127,7 +127,13 @@ const Index = () => {
 
   const handleSellConfirm = async (quantity: number) => {
     if (!selectedAsset) return;
-    await sellAsset(selectedAsset.symbol, selectedAsset.name, quantity, selectedAsset.currentPrice);
+    await sellAsset(
+      selectedAsset.id,
+      selectedAsset.symbol,
+      selectedAsset.name,
+      quantity,
+      selectedAsset.currentPrice
+    );
     setSellModalOpen(false);
     setSelectedAsset(null);
   };
