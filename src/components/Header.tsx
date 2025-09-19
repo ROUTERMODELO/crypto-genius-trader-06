@@ -1,4 +1,4 @@
-import { TrendingUp, LogOut } from 'lucide-react';
+import { TrendingUp, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@supabase/supabase-js';
@@ -6,9 +6,10 @@ import { User } from '@supabase/supabase-js';
 interface HeaderProps {
   lastUpdated: Date | null;
   user: User | null;
+  onSettingsClick?: () => void;
 }
 
-export const Header = ({ lastUpdated, user }: HeaderProps) => {
+export const Header = ({ lastUpdated, user, onSettingsClick }: HeaderProps) => {
   const { signOut } = useAuth();
   const formatLastUpdated = (date: Date | null) => {
     if (!date) return '';
@@ -39,6 +40,15 @@ export const Header = ({ lastUpdated, user }: HeaderProps) => {
               <span className="text-sm text-muted-foreground">
                 {user.email}
               </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSettingsClick}
+                className="text-muted-foreground hover:text-foreground"
+                title="Configurações"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

@@ -155,6 +155,39 @@ export type Database = {
           },
         ]
       }
+      user_api_configs: {
+        Row: {
+          binance_api_key: string | null
+          binance_secret_key: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_testnet: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          binance_api_key?: string | null
+          binance_secret_key?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_testnet?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          binance_api_key?: string | null
+          binance_secret_key?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_testnet?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

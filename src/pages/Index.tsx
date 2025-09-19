@@ -9,7 +9,9 @@ import { Portfolio } from '@/components/Portfolio';
 import { ProfitLossAnalysis } from '@/components/ProfitLossAnalysis';
 import { TransactionHistory } from '@/components/TransactionHistory';
 import { SellModal } from '@/components/SellModal';
+import { BinanceApiSettings } from '@/components/BinanceApiSettings';
 import { CryptoData, PortfolioAsset, PortfolioSummary } from '@/types/crypto';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const Index = () => {
   const { cryptoData, loading: cryptoLoading, lastUpdated } = useCryptoData();
@@ -27,6 +29,7 @@ const Index = () => {
   
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<PortfolioAsset | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Update asset prices when crypto data changes
   useEffect(() => {
@@ -157,6 +160,7 @@ const Index = () => {
         <Header 
           lastUpdated={lastUpdated}
           user={user}
+          onSettingsClick={() => setSettingsOpen(true)}
         />
         
         <main className="container mx-auto px-4 py-6 space-y-8">
@@ -202,6 +206,15 @@ const Index = () => {
           onClose={() => setSellModalOpen(false)}
           onConfirm={handleSellConfirm}
         />
+
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Configurações</DialogTitle>
+            </DialogHeader>
+            <BinanceApiSettings />
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   );
